@@ -34,9 +34,9 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>org.java-websocket</groupId>
-            <artifactId>Java-Websocket</artifactId>
-            <version>1.5.1</version>
+	       <groupId>com.github.TooTallNate</groupId>
+	       <artifactId>Java-WebSocket</artifactId>
+	       <version>v1.5.1</version>
         </dependency>
         <dependency>
             <groupId>com.github.CloudburstMC.Protocol</groupId>
