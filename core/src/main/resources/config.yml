@@ -175,6 +175,10 @@ metrics:
 
 # ADVANCED OPTIONS - DO NOT TOUCH UNLESS YOU KNOW WHAT YOU ARE DOING!
 
+custom-model-data-mappings:
+#  - "minecraft:iron_sword;123567;super_sword;true"
+
+
 # Geyser updates the Scoreboard after every Scoreboard packet, but when Geyser tries to handle
 # a lot of scoreboard packets per second can cause serious lag.
 # This option allows you to specify after how many Scoreboard packets per seconds
