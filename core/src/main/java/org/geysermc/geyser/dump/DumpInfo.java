@@ -47,6 +47,7 @@ import org.geysermc.floodgate.util.FloodgateInfoHolder;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -65,6 +66,7 @@ public class DumpInfo {
     private static final long MEGABYTE = 1024L * 1024L;
 
     private final DumpInfo.VersionInfo versionInfo;
+    private final int cpuCount;
     private Properties gitInfo;
     private final GeyserConfiguration config;
     private final Floodgate floodgate;
@@ -78,9 +80,11 @@ public class DumpInfo {
     public DumpInfo(boolean addLog) {
         this.versionInfo = new VersionInfo();
 
-        try {
+        this.cpuCount = Runtime.getRuntime().availableProcessors();
+
+        try (InputStream stream = GeyserImpl.getInstance().getBootstrap().getResource("git.properties")) {
             this.gitInfo = new Properties();
-            this.gitInfo.load(FileUtils.getResource("git.properties"));
+            this.gitInfo.load(stream);
         } catch (IOException ignored) {
         }
 
