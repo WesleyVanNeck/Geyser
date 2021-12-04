@@ -23,36 +23,25 @@
  * @link https://github.com/GeyserMC/Geyser
  */
 
-package org.geysermc.geyser.registry.loader;
+package org.geysermc.geyser.util;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import org.geysermc.geyser.GeyserImpl;
+import org.geysermc.geyser.Constants;
+import org.geysermc.geyser.GeyserLogger;
+import org.geysermc.geyser.text.GeyserLocale;
 
-import java.io.InputStream;
-import java.util.Map;
-import java.util.WeakHashMap;
+public final class VersionCheckUtils {
 
-/**
- * An abstract registry loader for loading effects from a resource path.
- *
- * @param <T> the value
- */
-public abstract class EffectRegistryLoader<T> implements RegistryLoader<String, T> {
-    private static final Map<String, JsonNode> loadedFiles = new WeakHashMap<>();
-
-    public void loadFile(String input) {
-        if (!loadedFiles.containsKey(input)) {
-            JsonNode effects;
-            try (InputStream stream = GeyserImpl.getInstance().getBootstrap().getResource(input)) {
-                effects = GeyserImpl.JSON_MAPPER.readTree(stream);
-            } catch (Exception e) {
-                throw new AssertionError("Unable to load registrations for " + input, e);
-            }
-            loadedFiles.put(input, effects);
+    public static void checkForOutdatedFloodgate(GeyserLogger logger) {
+        try {
+            // This class was removed in Floodgate 2.1.0-SNAPSHOT - if it still exists, Floodgate will not work
+            // with this version of Geyser
+            Class.forName("org.geysermc.floodgate.util.TimeSyncerHolder");
+            logger.warning(GeyserLocale.getLocaleStringLog("geyser.bootstrap.floodgate.outdated", Constants.FLOODGATE_DOWNLOAD_LOCATION));
+        } catch (ClassNotFoundException ignored) {
+            // Nothing to worry about; we want this exception
         }
     }
 
-    public JsonNode get(String input) {
-        return loadedFiles.get(input);
+    private VersionCheckUtils() {
     }
 }
