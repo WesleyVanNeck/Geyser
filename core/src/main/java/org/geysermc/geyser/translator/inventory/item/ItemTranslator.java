@@ -34,15 +34,16 @@ import com.nukkitx.nbt.NbtType;
 import com.nukkitx.protocol.bedrock.data.inventory.ItemData;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.geysermc.geyser.GeyserImpl;
-import org.geysermc.geyser.registry.populator.ItemRegistryPopulator;
-import org.geysermc.geyser.session.GeyserSession;
-import org.geysermc.geyser.translator.text.MessageTranslator;
 import org.geysermc.geyser.registry.BlockRegistries;
 import org.geysermc.geyser.registry.type.ItemMapping;
 import org.geysermc.geyser.registry.type.ItemMappings;
-import org.geysermc.geyser.util.FileUtils;
+import org.geysermc.geyser.session.GeyserSession;
 import org.geysermc.geyser.text.MinecraftLocale;
+import org.geysermc.geyser.translator.text.MessageTranslator;
+import org.geysermc.geyser.util.FileUtils;
 
 import javax.annotation.Nonnull;
 import java.util.*;
@@ -182,18 +183,6 @@ public abstract class ItemTranslator {
             canPlace = getCanModify(canPlaceOn, canPlace);
             builder.canBreak(canBreak);
             builder.canPlace(canPlace);
-            if (nbt.get("CustomModelData") != null) {
-                IntTag tag = nbt.get("CustomModelData");
-
-                String type = bedrockItem.getJavaIdentifier();
-                if (ItemRegistryPopulator.customModelDataMappings.containsKey(type + tag.getValue().toString())){
-                    builder.id(ItemRegistryPopulator.customModelDataMappings.get(type + tag.getValue().toString()));
-                    builder.damage(0);
-                } else if (ItemRegistryPopulator.customModelDataMappings.containsKey("all_items"+ tag.getValue().toString())){
-                    builder.id(ItemRegistryPopulator.customModelDataMappings.get("all_items" + tag.getValue().toString()));
-                    builder.damage(0);
-                }
-            }
         }
 
         return builder.build();
@@ -219,15 +208,31 @@ public abstract class ItemTranslator {
         int maxDurability = mapping.getMaxDamage();
 
         if (maxDurability != 0) {
-            int durability = maxDurability - ((IntTag) newNbt.get("Damage")).getValue();
-            if (durability != maxDurability) {
-                listTag.add(new StringTag("", "§r§f" + String.format(MessageTranslator.convertMessage("item.durability", language), durability, maxDurability)));
+            Tag durabilityTag = newNbt.get("Damage");
+            if (durabilityTag instanceof IntTag) {
+                int durability = maxDurability - ((IntTag) durabilityTag).getValue();
+                if (durability != maxDurability) {
+                    Component component = Component.text()
+                            .resetStyle()
+                            .color(NamedTextColor.WHITE)
+                            .append(Component.translatable("item.durability",
+                                    Component.text(durability),
+                                    Component.text(maxDurability)))
+                            .build();
+                    listTag.add(new StringTag("", MessageTranslator.convertMessage(component, language)));
+                }
             }
         }
 
         listTag.add(new StringTag("", "§r§8" + mapping.getJavaIdentifier()));
         if (nbt != null) {
-            listTag.add(new StringTag("", "§r§8" + String.format(MessageTranslator.convertMessage("item.nbt_tags", language), nbt.size())));
+            Component component = Component.text()
+                    .resetStyle()
+                    .color(NamedTextColor.DARK_GRAY)
+                    .append(Component.translatable("item.nbt_tags",
+                            Component.text(nbt.size())))
+                    .build();
+            listTag.add(new StringTag("", MessageTranslator.convertMessage(component, language)));
         }
         compoundTag.put(listTag);
         newNbt.put(compoundTag);
@@ -276,19 +281,6 @@ public abstract class ItemTranslator {
                 .count(itemStack.getAmount());
         if (itemStack.getNbt() != null) {
             builder.tag(this.translateNbtToBedrock(itemStack.getNbt()));
-            CompoundTag nbt = itemStack.getNbt();
-            if (nbt!=null && nbt.get("CustomModelData")!= null) {
-                IntTag tag = nbt.get("CustomModelData");
-
-                String type = mapping.getJavaIdentifier();
-                if (ItemRegistryPopulator.customModelDataMappings.containsKey(type + tag.getValue().toString())){
-                    builder.id(ItemRegistryPopulator.customModelDataMappings.get(type + tag.getValue().toString()));
-                    builder.damage(0);
-                } else if (ItemRegistryPopulator.customModelDataMappings.containsKey("all_items"+ tag.getValue().toString())){
-                    builder.id(ItemRegistryPopulator.customModelDataMappings.get("all_items" + tag.getValue().toString()));
-                    builder.damage(0);
-                }
-            }
         }
         return builder;
     }
@@ -407,7 +399,7 @@ public abstract class ItemTranslator {
         if (object instanceof byte[]) {
             return new ByteArrayTag(name, (byte[]) object);
         }
-        
+
         if (object instanceof Byte) {
             return new ByteTag(name, (byte) object);
         }
