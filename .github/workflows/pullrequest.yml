@@ -1,4 +1,4 @@
-name: Build Geyser
+name: Build Pull Request
 
 on: [pull_request, push]
 
