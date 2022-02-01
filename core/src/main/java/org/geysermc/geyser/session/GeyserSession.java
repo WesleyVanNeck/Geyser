@@ -363,6 +363,15 @@ public class GeyserSession implements GeyserConnection, CommandSender {
     private Int2ObjectMap<IntList> stonecutterRecipes;
 
     /**
+     * Starting in 1.17, Java servers expect the <code>carriedItem</code> parameter of the serverbound click container
+     * packet to be the current contents of the mouse after the transaction has been done. 1.16 expects the clicked slot
+     * contents before any transaction is done. With the current ViaVersion structure, if we do not send what 1.16 expects
+     * and send multiple click container packets, then successive transactions will be rejected.
+     */
+    @Setter
+    private boolean emulatePost1_16Logic = true;
+
+    /**
      * The current attack speed of the player. Used for sending proper cooldown timings.
      * Setting a default fixes cooldowns not showing up on a fresh world.
      */
@@ -801,6 +810,13 @@ public class GeyserSession implements GeyserConnection, CommandSender {
                             FloodgateSkinUploader skinUploader = geyser.getSkinUploader();
                             FloodgateCipher cipher = geyser.getCipher();
 
+                            String bedrockAddress = upstream.getAddress().getAddress().getHostAddress();
+                            // both BungeeCord and Velocity remove the IPv6 scope (if there is one) for Spigot
+                            int ipv6ScopeIndex = bedrockAddress.indexOf('%');
+                            if (ipv6ScopeIndex != -1) {
+                                bedrockAddress = bedrockAddress.substring(0, ipv6ScopeIndex);
+                            }
+
                             encryptedData = cipher.encryptFromString(BedrockData.of(
                                     clientData.getGameVersion(),
                                     authData.name(),
@@ -809,7 +825,7 @@ public class GeyserSession implements GeyserConnection, CommandSender {
                                     clientData.getLanguageCode(),
                                     clientData.getUiProfile().ordinal(),
                                     clientData.getCurrentInputMode().ordinal(),
-                                    upstream.getAddress().getAddress().getHostAddress(),
+                                    bedrockAddress,
                                     skinUploader.getId(),
                                     skinUploader.getVerifyCode()
                             ).toString());
