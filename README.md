@@ -34,12 +34,17 @@ Take a look [here](https://github.com/GeyserMC/Geyser/wiki/Setup) for how to set
 
 ## What's Left to be Added/Fixed
 - Near-perfect movement (to the point where anticheat on large servers is unlikely to ban you)
-- Resource pack conversion/CustomModelData
+- Resource pack conversion
 - Some Entity Flags
 - Structure block UI
 
 ## What can't be fixed
 There are a few things Geyser is unable to support due to various differences between Minecraft Bedrock and Java. For a list of these limitations, see the [Current Limitations](https://github.com/GeyserMC/Geyser/wiki/Current-Limitations) page.
+
+## About this fork
+Geyser, but CustomModelData(Mappings) support
+
+
 
 ## Compiling
 1. Clone the repo to your computer
