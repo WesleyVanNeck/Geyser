@@ -614,17 +614,17 @@ public class ItemRegistryPopulator {
                                itemType.contains("hoe")||
                                itemType.contains("axe")) {
                         int durability = 1;
-                        if (itemType.startsWith("minecraft:wooden")) {
+                        if (itemType.contains("wooden")) {
                             durability = getToolMaxDurabilityValue(1);
-                        } else if (itemType.startsWith("minecraft:stone")) {
+                        } else if (itemType.contains("stone")) {
                             durability = getToolMaxDurabilityValue(2);
-                        } else if (itemType.startsWith("minecraft:iron")) {
+                        } else if (itemType.contains("iron")) {
                             durability = getToolMaxDurabilityValue(3);
-                        } else if (itemType.startsWith("minecraft:golden")) {
+                        } else if (itemType.contains("golden")) {
                             durability = getToolMaxDurabilityValue(4);
-                        } else if (itemType.startsWith("minecraft:diamond")) {
+                        } else if (itemType.contains("diamond")) {
                             durability = getToolMaxDurabilityValue(5);
-                        } else if (itemType.startsWith("minecraft:netherite")) {
+                        } else if (itemType.contains("netherite")) {
                             durability = getToolMaxDurabilityValue(6);
                         }
                         customItemComponentBuilder.putCompound("minecraft:durability", NbtMap.builder().putInt("minecraft:max_durability", durability).build());
