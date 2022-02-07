@@ -598,14 +598,35 @@ public class ItemRegistryPopulator {
                     //Armor support. Thanks for AuthXero
                     NbtMapBuilder wearable = NbtMap.builder();
                     String type = null;
-                    if ((texture + itemType ).contains("_boots")) type = "feet";
+                    if ((texture + itemType).contains("_boots")) type = "feet";
                     if ((texture + itemType).contains("_chestplate")) type = "chest";
                     if ((texture + itemType).contains("_leggings")) type = "legs";
                     if ((texture + itemType).contains("_helmet")) type = "head";
                     if (type != null) {
+                        customItemComponentBuilder.putCompound("minecraft:armor", NbtMap.builder().putInt("protection", getProtectValue(itemType)).build());
+                        customItemComponentBuilder.putCompound("minecraft:durability", NbtMap.builder().putInt("minecraft:max_durability", getArmorMaxDurabilityValue(itemType)).build());
+
                         wearable.putBoolean("dispensable", true);
                         wearable.putString("slot", "slot.armor." + type);
-                        customItemProperties.putCompound("minecraft:wearable", wearable.build());
+                        customItemComponentBuilder.putCompound("minecraft:wearable", wearable.build());
+                    } else if (itemType.contains("shovel")||
+                               itemType.contains("sword")||
+                               itemType.contains("hoe")||
+                               itemType.contains("axe")) {
+                        int durability = 1;
+                        if (itemType.startsWith("minecraft:wooden")) {
+                            durability = getToolMaxDurabilityValue(1);
+                        } else if (itemType.startsWith("minecraft:stone")) {
+                            durability = getToolMaxDurabilityValue(2);
+                        } else if (itemType.startsWith("minecraft:iron")) {
+                            durability = getToolMaxDurabilityValue(3);
+                        } else if (itemType.startsWith("minecraft:golden")) {
+                            durability = getToolMaxDurabilityValue(4);
+                        } else if (itemType.startsWith("minecraft:diamond")) {
+                            durability = getToolMaxDurabilityValue(5);
+                        } else if (itemType.startsWith("minecraft:netherite")) {
+                            durability = getToolMaxDurabilityValue(6);
+                        }
                     }
 
                     customItemComponentBuilder.putCompound("item_properties", customItemProperties.build());
@@ -642,4 +663,86 @@ public class ItemRegistryPopulator {
     private static NbtMap buildXYZ (Float[]scale){
         return NbtMap.builder().putCompound("scale", NbtMap.builder().putFloat("x", scale[0]).putFloat("y", scale[1]).putFloat("z", scale[2]).build()).build();
     }
+
+    // TODO support tool
+    private NbtMap buildTool(int durability, int speed, String type) {
+        return null;
+    }
+
+    private static int getProtectValue(String type) {
+        return switch (type) {
+            case "minecraft:leather_helmet" -> 1;
+            case "minecraft:leather_chestplate" -> 3;
+            case "minecraft:leather_leggings" -> 2;
+            case "minecraft:leather_boots" -> 1;
+            case "minecraft:golden_helmet" -> 2;
+            case "minecraft:golden_chestplate" -> 5;
+            case "minecraft:golden_leggings" -> 3;
+            case "minecraft:golden_boots" -> 1;
+            case "minecraft:chainmail_helmet" -> 2;
+            case "minecraft:chainmail_chestplate" -> 5;
+            case "minecraft:chainmail_leggings" -> 4;
+            case "minecraft:chainmail_boots" -> 1;
+            case "minecraft:iron_helmet" -> 2;
+            case "minecraft:iron_chestplate" -> 6;
+            case "minecraft:iron_leggings" -> 5;
+            case "minecraft:iron_boots" -> 2;
+            case "minecraft:diamond_helmet" -> 3;
+            case "minecraft:diamond_chestplate" -> 8;
+            case "minecraft:diamond_leggings" -> 6;
+            case "minecraft:diamond_boots" -> 3;
+            case "minecraft:netherite_helmet" -> 3;
+            case "minecraft:netheritechestplate" -> 8;
+            case "minecraft:netherite_leggings" -> 6;
+            case "minecraft:netherite_boots" -> 3;
+            case "minecraft:turtle_helmet" -> 2;
+            default -> 1;
+        };
+    }
+
+    private static int getArmorMaxDurabilityValue(String type) {
+        return switch (type) {
+            case "minecraft:leather_helmet" -> 55;
+            case "minecraft:leather_chestplate" -> 80;
+            case "minecraft:leather_leggings" -> 75;
+            case "minecraft:leather_boots" -> 65;
+            case "minecraft:golden_helmet" -> 77;
+            case "minecraft:golden_chestplate" -> 112;
+            case "minecraft:golden_leggings" -> 105;
+            case "minecraft:golden_boots" -> 91;
+            case "minecraft:chainmail_helmet" -> 165;
+            case "minecraft:chainmail_chestplate" -> 240;
+            case "minecraft:chainmail_leggings" -> 225;
+            case "minecraft:chainmail_boots" -> 195;
+            case "minecraft:iron_helmet" -> 165;
+            case "minecraft:iron_chestplate" -> 240;
+            case "minecraft:iron_leggings" -> 225;
+            case "minecraft:iron_boots" -> 195;
+            case "minecraft:diamond_helmet" -> 363;
+            case "minecraft:diamond_chestplate" -> 528;
+            case "minecraft:diamond_leggings" -> 495;
+            case "minecraft:diamond_boots" -> 429;
+            case "minecraft:netherite_helmet" -> 407;
+            case "minecraft:netheritechestplate" -> 592;
+            case "minecraft:netherite_leggings" -> 555;
+            case "minecraft:netherite_boots" -> 481;
+            case "minecraft:turtle_helmet" -> 275;
+            default -> 1000;
+        };
+    }
+
+    private static int getToolMaxDurabilityValue(int level) {
+        return switch (level) {
+            case 1 -> 59;
+            case 2 -> 131;
+            case 3 -> 250;
+            case 4 -> 32;
+            case 5 -> 1561;
+            case 6 -> 2031;
+            default -> 1000;
+        };
+    }
+
+
+
 }
