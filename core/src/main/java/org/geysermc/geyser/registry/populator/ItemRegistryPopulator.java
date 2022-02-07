@@ -627,6 +627,8 @@ public class ItemRegistryPopulator {
                         } else if (itemType.startsWith("minecraft:netherite")) {
                             durability = getToolMaxDurabilityValue(6);
                         }
+                        customItemComponentBuilder.putCompound("minecraft:durability", NbtMap.builder().putInt("minecraft:max_durability", durability).build());
+
                     }
 
                     customItemComponentBuilder.putCompound("item_properties", customItemProperties.build());
