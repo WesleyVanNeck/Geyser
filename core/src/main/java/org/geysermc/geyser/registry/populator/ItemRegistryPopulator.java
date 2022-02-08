@@ -629,7 +629,7 @@ public class ItemRegistryPopulator {
                         }
                         System.out.println("Register Item: " + itemType + "," + itemId + " durability:" + durability);
                         customItemProperties.putInt("max_stack_size", 1);
-                        customItemProperties.putCompound("minecraft:durability", NbtMap.builder().putInt("minecraft:max_durability", durability).build());
+                        customItemComponentBuilder.putCompound("minecraft:durability", NbtMap.builder().putInt("minecraft:max_durability", durability).build());
 
                     } else {
                         customItemProperties.putInt("max_stack_size", 64);

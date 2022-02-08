@@ -310,10 +310,8 @@ public abstract class ItemTranslator {
             String type = mapping.getJavaIdentifier();
             if (ItemRegistryPopulator.customModelDataMappings.containsKey(type + tag.getValue().toString())){
                 builder.id(ItemRegistryPopulator.customModelDataMappings.get(type + tag.getValue().toString()));
-                builder.damage(0);
             } else if (ItemRegistryPopulator.customModelDataMappings.containsKey("all_items"+ tag.getValue().toString())){
                 builder.id(ItemRegistryPopulator.customModelDataMappings.get("all_items" + tag.getValue().toString()));
-                builder.damage(0);
             }
         }
         return builder;
