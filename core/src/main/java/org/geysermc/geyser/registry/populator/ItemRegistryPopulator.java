@@ -583,7 +583,7 @@ public class ItemRegistryPopulator {
                     customItemProperties.putBoolean("hand_equipped", isTool);
 
 
-                    customItemProperties.putInt("max_stack_size", 64);
+
                     if (size != 16) {
                         customItemComponentBuilder.putCompound("minecraft:render_offsets",
                                 NbtMap.builder().putCompound("main_hand", NbtMap.builder()
@@ -627,8 +627,12 @@ public class ItemRegistryPopulator {
                         } else if (itemType.contains("netherite")) {
                             durability = getToolMaxDurabilityValue(6);
                         }
+                        System.out.println("Register Item: " + itemType + "," + itemId + " durability:" + durability);
+                        customItemProperties.putInt("max_stack_size", 1);
                         customItemComponentBuilder.putCompound("minecraft:durability", NbtMap.builder().putInt("minecraft:max_durability", durability).build());
 
+                    } else {
+                        customItemProperties.putInt("max_stack_size", 64);
                     }
 
                     customItemComponentBuilder.putCompound("item_properties", customItemProperties.build());
