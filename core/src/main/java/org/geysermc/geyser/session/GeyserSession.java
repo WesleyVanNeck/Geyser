@@ -1225,7 +1225,7 @@ public class GeyserSession implements GeyserConnection, CommandSender {
         startGamePacket.setPlayerPosition(Vector3f.from(0, 69, 0));
         startGamePacket.setRotation(Vector2f.from(1, 1));
 
-        startGamePacket.setSeed(-1);
+        startGamePacket.setSeed(1094173651);
         startGamePacket.setDimensionId(DimensionUtils.javaToBedrock(dimension));
         startGamePacket.setGeneratorId(1);
         startGamePacket.setLevelGameType(GameType.SURVIVAL);
