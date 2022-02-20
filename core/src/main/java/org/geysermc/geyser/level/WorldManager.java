@@ -161,4 +161,6 @@ public abstract class WorldManager {
      * @return True if the player has the requested permission, false if not
      */
     public abstract boolean hasPermission(GeyserSession session, String permission);
+
+    public abstract boolean isPoweredDragonHead(GeyserSession session, int x, int y, int z);
 }

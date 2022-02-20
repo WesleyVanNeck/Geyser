@@ -33,11 +33,12 @@ import com.nukkitx.nbt.NbtMapBuilder;
 import org.geysermc.geyser.network.MinecraftProtocol;
 import org.geysermc.geyser.registry.Registries;
 import org.geysermc.geyser.registry.type.ItemMapping;
+import org.geysermc.geyser.session.GeyserSession;
 
 @BlockEntity(type = BlockEntityType.CAMPFIRE)
 public class CampfireBlockEntityTranslator extends BlockEntityTranslator {
     @Override
-    public void translateTag(NbtMapBuilder builder, CompoundTag tag, int blockState) {
+    public void translateTag(GeyserSession session, NbtMapBuilder builder, CompoundTag tag, int blockState) {
         ListTag items = tag.get("Items");
         int i = 1;
         for (com.github.steveice10.opennbt.tag.builtin.Tag itemTag : items.getValue()) {

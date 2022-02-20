@@ -121,4 +121,9 @@ public class GeyserWorldManager extends WorldManager {
     public boolean hasPermission(GeyserSession session, String permission) {
         return false;
     }
+
+    @Override
+    public boolean isPoweredDragonHead(GeyserSession session, int x, int y, int z) {
+        return false;
+    }
 }
