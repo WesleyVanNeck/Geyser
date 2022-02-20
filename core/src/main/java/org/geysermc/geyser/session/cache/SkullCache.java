@@ -26,6 +26,7 @@
 package org.geysermc.geyser.session.cache;
 
 import com.github.steveice10.mc.auth.data.GameProfile;
+import com.nukkitx.math.vector.Vector3f;
 import com.nukkitx.math.vector.Vector3i;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import lombok.Data;
@@ -57,7 +58,7 @@ public class SkullCache {
 
     private final GeyserSession session;
 
-    private Vector3i lastPlayerPosition;
+    private Vector3f lastPlayerPosition;
 
     private long lastCleanup = System.currentTimeMillis();
 
@@ -86,7 +87,7 @@ public class SkullCache {
             if (lastPlayerPosition == null) {
                 return;
             }
-            skull.distanceSquared = position.distanceSquared(lastPlayerPosition);
+            skull.distanceSquared = position.distanceSquared(lastPlayerPosition.getX(), lastPlayerPosition.getY(), lastPlayerPosition.getZ());
             if (skull.distanceSquared < skullRenderDistanceSquared) {
                 // Keep list in order
                 int i = Collections.binarySearch(inRangeSkulls, skull, Comparator.comparingInt(Skull::getDistanceSquared));
@@ -123,16 +124,15 @@ public class SkullCache {
 
     public void updateVisibleSkulls() {
         if (cullingEnabled) {
-            Vector3i playerPosition = session.getPlayerEntity().getPosition().toInt();
             // No need to recheck skull visibility for small movements
-            if (lastPlayerPosition != null && playerPosition.distanceSquared(lastPlayerPosition) < 4) {
+            if (lastPlayerPosition != null && session.getPlayerEntity().getPosition().distanceSquared(lastPlayerPosition) < 4) {
                 return;
             }
-            lastPlayerPosition = playerPosition;
+            lastPlayerPosition = session.getPlayerEntity().getPosition();
 
             inRangeSkulls.clear();
             for (Skull skull : skulls.values()) {
-                skull.distanceSquared = skull.position.distanceSquared(playerPosition);
+                skull.distanceSquared = skull.position.distanceSquared(lastPlayerPosition.getX(), lastPlayerPosition.getY(), lastPlayerPosition.getZ());
                 if (skull.distanceSquared > skullRenderDistanceSquared) {
                     freeSkullEntity(skull);
                 } else {
@@ -141,11 +141,12 @@ public class SkullCache {
             }
             inRangeSkulls.sort(Comparator.comparingInt(Skull::getDistanceSquared));
 
-            for (int i = maxVisibleSkulls; i < inRangeSkulls.size(); i++) {
-                freeSkullEntity(inRangeSkulls.get(i));
-            }
-            for (int i = 0; i < Math.min(maxVisibleSkulls, inRangeSkulls.size()); i++) {
-                assignSkullEntity(inRangeSkulls.get(i));
+            for (int i = inRangeSkulls.size() - 1; i >= 0; i--) {
+                if (i < maxVisibleSkulls) {
+                    assignSkullEntity(inRangeSkulls.get(i));
+                } else {
+                    freeSkullEntity(inRangeSkulls.get(i));
+                }
             }
         }
 
