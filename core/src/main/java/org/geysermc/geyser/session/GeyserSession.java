@@ -251,8 +251,8 @@ public class GeyserSession implements GeyserConnection, CommandSender {
     @Setter
     private Vector2i lastChunkPosition = null;
     @Setter
-    public int clientRenderDistance = -1;
-    public int serverRenderDistance;
+    private int clientRenderDistance = -1;
+    private int serverRenderDistance;
 
     // Exposed for GeyserConnect usage
     protected boolean sentSpawnPacket;
