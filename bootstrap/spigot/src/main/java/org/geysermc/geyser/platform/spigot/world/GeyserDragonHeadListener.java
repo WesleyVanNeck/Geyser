@@ -252,7 +252,7 @@ public final class GeyserDragonHeadListener implements Listener {
 
             int dX = Math.abs(location.getBlockX() - player.getLocation().getBlockX()) >> 4;
             int dZ = Math.abs(location.getBlockZ() - player.getLocation().getBlockZ()) >> 4;
-            if ((dX * dX + dZ * dZ) > session.getRenderDistance() * session.getRenderDistance()) {
+            if ((dX * dX + dZ * dZ) > session.getServerRenderDistance() * session.getServerRenderDistance()) {
                 // Ignore heads outside the player's render distance
                 continue;
             }
