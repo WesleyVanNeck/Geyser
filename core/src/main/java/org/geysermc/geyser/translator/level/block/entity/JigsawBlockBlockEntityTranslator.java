@@ -33,7 +33,7 @@ import com.nukkitx.nbt.NbtMapBuilder;
 import org.geysermc.geyser.level.block.BlockStateValues;
 
 @BlockEntity(type = BlockEntityType.JIGSAW)
-public class JigsawBlockBlockEntityTranslator extends BlockEntityTranslator implements RequiresBlockState {
+public class JigsawBlockBlockEntityTranslator extends BlockEntityTranslator {
     @Override
     public void translateTag(NbtMapBuilder builder, CompoundTag tag, int blockState) {
         Tag jointTag = tag.get("joint");
