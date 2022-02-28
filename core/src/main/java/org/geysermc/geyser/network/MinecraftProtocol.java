@@ -32,7 +32,10 @@ import com.nukkitx.protocol.bedrock.v471.Bedrock_v471;
 import com.nukkitx.protocol.bedrock.v475.Bedrock_v475;
 import com.nukkitx.protocol.bedrock.v486.Bedrock_v486;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.StringJoiner;
 
 /**
  * Contains information about the supported protocols in Geyser.
@@ -89,7 +92,7 @@ public final class MinecraftProtocol {
      * @return the supported Minecraft: Java Edition version names
      */
     public static List<String> getJavaVersions() {
-        return Collections.singletonList(DEFAULT_JAVA_CODEC.getMinecraftVersion());
+        return Arrays.asList("1.18", "1.18.1");
     }
 
     /**
