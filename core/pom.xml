@@ -153,9 +153,9 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
-	   <groupId>com.github.GeyserMC</groupId>
-            <artifactId>mcprotocollib</artifactId>
-            <version>feature~1.19-SNAPSHOT</version>
+	    <groupId>com.github.LegacyGamerHD</groupId>
+	    <artifactId>Protocol</artifactId>
+	    <version>patch-1-SNAPSHOT</version>
             <scope>compile</scope>
             <exclusions>
                 <exclusion>
