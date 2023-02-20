@@ -37,8 +37,8 @@ public class JavaSetChunkCacheCenterTranslator extends PacketTranslator<Clientbo
 
     @Override
     public void translate(GeyserSession session, ClientboundSetChunkCacheCenterPacket packet) {
-        //if (!session.isSpawned() && session.getLastChunkPosition() == null) {
+        if (!session.isSpawned() && session.getLastChunkPosition() == null) {
             ChunkUtils.updateChunkPosition(session, Vector3i.from(packet.getChunkX() << 4, 64, packet.getChunkZ() << 4));
-       // }
+        }
     }
 }
