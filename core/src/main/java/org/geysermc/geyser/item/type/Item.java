@@ -33,8 +33,11 @@ import org.cloudburstmc.nbt.NbtType;
 import org.cloudburstmc.protocol.bedrock.data.inventory.ItemData;
 import org.geysermc.geyser.GeyserImpl;
 import org.geysermc.geyser.inventory.GeyserItemStack;
-import org.geysermc.geyser.inventory.item.Enchantment;
+import org.geysermc.geyser.inventory.item.BedrockEnchantment;
 import org.geysermc.geyser.item.Items;
+import org.geysermc.geyser.item.components.Rarity;
+import org.geysermc.geyser.item.enchantment.Enchantment;
+import org.geysermc.geyser.level.block.type.Block;
 import org.geysermc.geyser.registry.type.ItemMapping;
 import org.geysermc.geyser.registry.type.ItemMappings;
 import org.geysermc.geyser.session.GeyserSession;
@@ -43,37 +46,34 @@ import org.geysermc.geyser.text.MinecraftLocale;
 import org.geysermc.geyser.translator.item.BedrockItemBuilder;
 import org.geysermc.geyser.translator.item.ItemTranslator;
 import org.geysermc.geyser.translator.text.MessageTranslator;
-import org.geysermc.mcprotocollib.protocol.data.game.Identifier;
+import org.geysermc.geyser.util.MinecraftKey;
 import org.geysermc.mcprotocollib.protocol.data.game.item.component.DataComponentType;
 import org.geysermc.mcprotocollib.protocol.data.game.item.component.DataComponents;
+import org.geysermc.mcprotocollib.protocol.data.game.item.component.DyedItemColor;
 import org.geysermc.mcprotocollib.protocol.data.game.item.component.ItemEnchantments;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class Item {
-    /**
-     * This is a map from Java-only enchantments to their translation keys so that we can
-     * map these enchantments to Bedrock clients, since they don't actually exist there.
-     */
-    private static final Map<Enchantment.JavaEnchantment, String> ENCHANTMENT_TRANSLATION_KEYS = Map.of(
-            Enchantment.JavaEnchantment.SWEEPING_EDGE, "enchantment.minecraft.sweeping",
-            Enchantment.JavaEnchantment.DENSITY, "enchantment.minecraft.density",
-            Enchantment.JavaEnchantment.BREACH, "enchantment.minecraft.breach",
-            Enchantment.JavaEnchantment.WIND_BURST, "enchantment.minecraft.wind_burst");
-
+    private static final Map<Block, Item> BLOCK_TO_ITEM = new HashMap<>();
     private final String javaIdentifier;
     private int javaId = -1;
     private final int stackSize;
     private final int attackDamage;
     private final int maxDamage;
+    private final Rarity rarity;
+    private final boolean glint;
 
     public Item(String javaIdentifier, Builder builder) {
-        this.javaIdentifier = Identifier.formalize(javaIdentifier).intern();
+        this.javaIdentifier = MinecraftKey.key(javaIdentifier).asString().intern();
         this.stackSize = builder.stackSize;
         this.maxDamage = builder.maxDamage;
         this.attackDamage = builder.attackDamage;
+        this.rarity = builder.rarity;
+        this.glint = builder.glint;
     }
 
     public String javaIdentifier() {
@@ -94,6 +94,14 @@ public class Item {
 
     public int maxStackSize() {
         return stackSize;
+    }
+
+    public Rarity rarity() {
+        return rarity;
+    }
+
+    public boolean glint() {
+        return glint;
     }
 
     public boolean isValidRepairItem(Item other) {
@@ -130,7 +138,7 @@ public class Item {
      */
     public void translateComponentsToBedrock(@NonNull GeyserSession session, @NonNull DataComponents components, @NonNull BedrockItemBuilder builder) {
         List<Component> loreComponents = components.get(DataComponentType.LORE);
-        if (loreComponents != null) {
+        if (loreComponents != null && components.get(DataComponentType.HIDE_TOOLTIP) == null) {
             List<String> lore = builder.getOrCreateLore();
             for (Component loreComponent : loreComponents) {
                 lore.add(MessageTranslator.convertMessage(loreComponent, session.locale()));
@@ -177,7 +185,7 @@ public class Item {
      * </ul>
      * Therefore, if translation cannot be achieved for a certain item, it is not necessarily bad.
      */
-    public void translateNbtToJava(@NonNull NbtMap bedrockTag, @NonNull DataComponents components, @NonNull ItemMapping mapping) {
+    public void translateNbtToJava(@NonNull GeyserSession session, @NonNull NbtMap bedrockTag, @NonNull DataComponents components, @NonNull ItemMapping mapping) {
         // TODO see if any items from the creative menu need this
 //        CompoundTag displayTag = tag.get("display");
 //        if (displayTag != null) {
@@ -196,60 +204,24 @@ public class Item {
 //                displayTag.put(new ListTag("Lore", lore));
 //            }
 //        }
-
-        // TODO no creative item should have enchantments *except* enchanted books
-//        List<NbtMap> enchantmentTag = bedrockTag.getList("ench", NbtType.COMPOUND);
-//        if (enchantmentTag != null) {
-//            List<Tag> enchantments = new ArrayList<>();
-//            for (Tag value : enchantmentTag.getValue()) {
-//                if (!(value instanceof CompoundTag tagValue))
-//                    continue;
-//
-//                ShortTag bedrockId = tagValue.get("id");
-//                if (bedrockId == null) continue;
-//
-//                Enchantment enchantment = Enchantment.getByBedrockId(bedrockId.getValue());
-//                if (enchantment != null) {
-//                    CompoundTag javaTag = new CompoundTag("");
-//                    Map<String, Tag> javaValue = javaTag.getValue();
-//                    javaValue.put("id", new StringTag("id", enchantment.getJavaIdentifier()));
-//                    ShortTag levelTag = tagValue.get("lvl");
-//                    javaValue.put("lvl", new IntTag("lvl", levelTag != null ? levelTag.getValue() : 1));
-//                    javaTag.setValue(javaValue);
-//
-//                    enchantments.add(javaTag);
-//                } else {
-//                    GeyserImpl.getInstance().getLogger().debug("Unknown bedrock enchantment: " + bedrockId);
-//                }
-//            }
-//            if (!enchantments.isEmpty()) {
-//                if ((this instanceof EnchantedBookItem)) {
-//                    bedrockTag.put(new ListTag("StoredEnchantments", enchantments));
-//                    components.put(DataComponentType.STORED_ENCHANTMENTS, enchantments);
-//                } else {
-//                    components.put(DataComponentType.ENCHANTMENTS, enchantments);
-//                }
-//            }
-//        }
     }
 
     protected final @Nullable NbtMap remapEnchantment(GeyserSession session, int enchantId, int level, BedrockItemBuilder builder) {
-        // TODO verify
-        // TODO streamline Enchantment process
-        Enchantment.JavaEnchantment enchantment = Enchantment.JavaEnchantment.of(enchantId);
-        String translationKey = ENCHANTMENT_TRANSLATION_KEYS.get(enchantment);
-        if (translationKey != null) {
-            String enchantmentTranslation = MinecraftLocale.getLocaleString(translationKey, session.locale());
-            addJavaOnlyEnchantment(session, builder, enchantmentTranslation, level);
-            return null;
-        }
+        Enchantment enchantment = session.getRegistryCache().enchantments().byId(enchantId);
         if (enchantment == null) {
             GeyserImpl.getInstance().getLogger().debug("Unknown Java enchantment while NBT item translating: " + enchantId);
             return null;
         }
 
+        BedrockEnchantment bedrockEnchantment = enchantment.bedrockEnchantment();
+        if (bedrockEnchantment == null) {
+            String enchantmentTranslation = MinecraftLocale.getLocaleString(enchantment.description(), session.locale());
+            addJavaOnlyEnchantment(session, builder, enchantmentTranslation, level);
+            return null;
+        }
+
         return NbtMap.builder()
-                .putShort("id", (short) Enchantment.valueOf(enchantment.name()).ordinal())
+                .putShort("id", (short) bedrockEnchantment.ordinal())
                 .putShort("lvl", (short) level)
                 .build();
     }
@@ -257,7 +229,22 @@ public class Item {
     private void addJavaOnlyEnchantment(GeyserSession session, BedrockItemBuilder builder, String enchantmentName, int level) {
         String lvlTranslation = MinecraftLocale.getLocaleString("enchantment.level." + level, session.locale());
 
-        builder.getOrCreateLore().add(ChatColor.RESET + ChatColor.GRAY + enchantmentName + " " + lvlTranslation);
+        builder.getOrCreateLore().add(0, ChatColor.RESET + ChatColor.GRAY + enchantmentName + " " + lvlTranslation);
+    }
+
+    protected final void translateDyedColor(DataComponents components, BedrockItemBuilder builder) {
+        DyedItemColor dyedItemColor = components.get(DataComponentType.DYED_COLOR);
+        if (dyedItemColor != null) {
+            builder.putInt("customColor", dyedItemColor.getRgb());
+        }
+    }
+
+    /**
+     * Override if the Bedrock equivalent of an item uses damage for extra data, and should not be tracked
+     * when translating an item.
+     */
+    public boolean ignoreDamage() {
+        return false;
     }
 
     /* Translation methods end */
@@ -281,6 +268,18 @@ public class Item {
                 '}';
     }
 
+    /**
+     * @return the block associated with this item, or air if nothing
+     */
+    @NonNull
+    public static Item byBlock(Block block) {
+        return BLOCK_TO_ITEM.getOrDefault(block, Items.AIR);
+    }
+
+    protected static void registerBlock(Block block, Item item) {
+        BLOCK_TO_ITEM.put(block, item);
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -289,6 +288,8 @@ public class Item {
         private int stackSize = 64;
         private int maxDamage;
         private int attackDamage;
+        private Rarity rarity = Rarity.COMMON;
+        private boolean glint = false;
 
         public Builder stackSize(int stackSize) {
             this.stackSize = stackSize;
@@ -303,6 +304,16 @@ public class Item {
 
         public Builder maxDamage(int maxDamage) {
             this.maxDamage = maxDamage;
+            return this;
+        }
+
+        public Builder rarity(Rarity rarity) {
+            this.rarity = rarity;
+            return this;
+        }
+
+        public Builder glint(boolean glintOverride) {
+            this.glint = glintOverride;
             return this;
         }
 

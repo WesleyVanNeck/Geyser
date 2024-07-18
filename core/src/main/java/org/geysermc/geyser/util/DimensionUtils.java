@@ -27,6 +27,7 @@ package org.geysermc.geyser.util;
 
 import org.cloudburstmc.math.vector.Vector3f;
 import org.cloudburstmc.math.vector.Vector3i;
+import org.cloudburstmc.protocol.bedrock.data.LevelEvent;
 import org.cloudburstmc.protocol.bedrock.data.PlayerActionType;
 import org.cloudburstmc.protocol.bedrock.packet.*;
 import org.geysermc.geyser.entity.type.Entity;
@@ -65,9 +66,6 @@ public class DimensionUtils {
         session.getChunkCache().clear();
         session.getEntityCache().removeAllEntities();
         session.getItemFrameCache().clear();
-        if (session.getLecternCache() != null) {
-            session.getLecternCache().clear();
-        }
         session.getLodestoneCache().clear();
         session.getPistonCache().clear();
         session.getSkullCache().clear();
@@ -112,6 +110,20 @@ public class DimensionUtils {
         }
         // Effects are re-sent from server
         entityEffects.clear();
+
+        // Always reset weather, as it sometimes suddenly starts raining. See https://github.com/GeyserMC/Geyser/issues/3679
+        LevelEventPacket stopRainPacket = new LevelEventPacket();
+        stopRainPacket.setType(LevelEvent.STOP_RAINING);
+        stopRainPacket.setData(0);
+        stopRainPacket.setPosition(Vector3f.ZERO);
+        session.sendUpstreamPacket(stopRainPacket);
+        session.setRaining(false);
+        LevelEventPacket stopThunderPacket = new LevelEventPacket();
+        stopThunderPacket.setType(LevelEvent.STOP_THUNDERSTORM);
+        stopThunderPacket.setData(0);
+        stopThunderPacket.setPosition(Vector3f.ZERO);
+        session.sendUpstreamPacket(stopThunderPacket);
+        session.setThunder(false);
 
         //let java server handle portal travel sound
         StopSoundPacket stopSoundPacket = new StopSoundPacket();
