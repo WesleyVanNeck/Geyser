@@ -30,7 +30,6 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.geysermc.geyser.command.GeyserCommandSource;
 
-import java.util.UUID;
 
 public interface GeyserLogger extends GeyserCommandSource {
 
@@ -128,11 +127,6 @@ public interface GeyserLogger extends GeyserCommandSource {
     @Override
     default boolean isConsole() {
         return true;
-    }
-
-    @Override
-    default @Nullable UUID playerUuid() {
-        return null;
     }
 
     @Override

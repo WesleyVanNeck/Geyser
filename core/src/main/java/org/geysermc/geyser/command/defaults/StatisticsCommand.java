@@ -25,28 +25,35 @@
 
 package org.geysermc.geyser.command.defaults;
 
-import org.geysermc.geyser.api.util.TriState;
+import org.geysermc.geyser.GeyserImpl;
 import org.geysermc.geyser.command.GeyserCommand;
 import org.geysermc.geyser.command.GeyserCommandSource;
 import org.geysermc.geyser.session.GeyserSession;
 import org.geysermc.mcprotocollib.protocol.data.game.ClientCommand;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.serverbound.ServerboundClientCommandPacket;
-import org.incendo.cloud.context.CommandContext;
-
-import java.util.Objects;
 
 public class StatisticsCommand extends GeyserCommand {
 
-    public StatisticsCommand(String name, String description, String permission) {
-        super(name, description, permission, TriState.TRUE, true, true);
+    public StatisticsCommand(GeyserImpl geyser, String name, String description, String permission) {
+        super(name, description, permission);
     }
 
     @Override
-    public void execute(CommandContext<GeyserCommandSource> context) {
-        GeyserSession session = Objects.requireNonNull(context.sender().connection());
+    public void execute(GeyserSession session, GeyserCommandSource sender, String[] args) {
+        if (session == null) return;
 
         session.setWaitingForStatistics(true);
-        ServerboundClientCommandPacket packet = new ServerboundClientCommandPacket(ClientCommand.STATS);
-        session.sendDownstreamGamePacket(packet);
+        ServerboundClientCommandPacket ServerboundClientCommandPacket = new ServerboundClientCommandPacket(ClientCommand.STATS);
+        session.sendDownstreamGamePacket(ServerboundClientCommandPacket);
+    }
+
+    @Override
+    public boolean isExecutableOnConsole() {
+        return false;
+    }
+
+    @Override
+    public boolean isBedrockOnly() {
+        return true;
     }
 }

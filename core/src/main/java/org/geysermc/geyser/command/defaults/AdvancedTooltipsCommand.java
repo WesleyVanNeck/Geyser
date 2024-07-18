@@ -25,32 +25,33 @@
 
 package org.geysermc.geyser.command.defaults;
 
-import org.geysermc.geyser.api.util.TriState;
 import org.geysermc.geyser.command.GeyserCommand;
 import org.geysermc.geyser.command.GeyserCommandSource;
 import org.geysermc.geyser.session.GeyserSession;
-import org.geysermc.geyser.text.ChatColor;
 import org.geysermc.geyser.text.MinecraftLocale;
-import org.incendo.cloud.context.CommandContext;
-
-import java.util.Objects;
 
 public class AdvancedTooltipsCommand extends GeyserCommand {
-
     public AdvancedTooltipsCommand(String name, String description, String permission) {
-        super(name, description, permission, TriState.TRUE, true, true);
+        super(name, description, permission);
     }
 
     @Override
-    public void execute(CommandContext<GeyserCommandSource> context) {
-        GeyserSession session = Objects.requireNonNull(context.sender().connection());
+    public void execute(GeyserSession session, GeyserCommandSource sender, String[] args) {
+        if (session != null) {
+            String onOrOff = session.isAdvancedTooltips() ? "off" : "on";
+            session.setAdvancedTooltips(!session.isAdvancedTooltips());
+            session.sendMessage("§l§e" + MinecraftLocale.getLocaleString("debug.prefix", session.locale()) + " §r" + MinecraftLocale.getLocaleString("debug.advanced_tooltips." + onOrOff, session.locale()));
+            session.getInventoryTranslator().updateInventory(session, session.getPlayerInventory());
+        }
+    }
 
-        String onOrOff = session.isAdvancedTooltips() ? "off" : "on";
-        session.setAdvancedTooltips(!session.isAdvancedTooltips());
-        session.sendMessage(ChatColor.BOLD + ChatColor.YELLOW
-            + MinecraftLocale.getLocaleString("debug.prefix", session.locale())
-            + " " + ChatColor.RESET
-            + MinecraftLocale.getLocaleString("debug.advanced_tooltips." + onOrOff, session.locale()));
-        session.getInventoryTranslator().updateInventory(session, session.getPlayerInventory());
+    @Override
+    public boolean isExecutableOnConsole() {
+        return false;
+    }
+
+    @Override
+    public boolean isBedrockOnly() {
+        return true;
     }
 }

@@ -8,14 +8,12 @@ platformRelocate("net.kyori")
 platformRelocate("org.yaml")
 platformRelocate("it.unimi.dsi.fastutil")
 platformRelocate("org.cloudburstmc.netty")
-platformRelocate("org.incendo")
-platformRelocate("io.leangen.geantyref") // provided by cloud, should also be relocated
 
 // These dependencies are already present on the platform
 provided(libs.viaproxy)
 
-tasks.withType<Jar> {
-    manifest.attributes["Main-Class"] = "org.geysermc.geyser.platform.viaproxy.GeyserViaProxyMain"
+application {
+    mainClass.set("org.geysermc.geyser.platform.viaproxy.GeyserViaProxyMain")
 }
 
 tasks.withType<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar> {

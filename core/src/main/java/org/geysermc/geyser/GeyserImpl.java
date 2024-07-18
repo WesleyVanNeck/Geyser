@@ -61,7 +61,7 @@ import org.geysermc.geyser.api.network.BedrockListener;
 import org.geysermc.geyser.api.network.RemoteServer;
 import org.geysermc.geyser.api.util.MinecraftVersion;
 import org.geysermc.geyser.api.util.PlatformType;
-import org.geysermc.geyser.command.CommandRegistry;
+import org.geysermc.geyser.command.GeyserCommandManager;
 import org.geysermc.geyser.configuration.GeyserConfiguration;
 import org.geysermc.geyser.entity.EntityDefinitions;
 import org.geysermc.geyser.erosion.UnixSocketClientListener;
@@ -106,7 +106,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Getter
-public class GeyserImpl implements GeyserApi, EventRegistrar {
+public class GeyserImpl implements GeyserApi {
     public static final ObjectMapper JSON_MAPPER = new ObjectMapper()
             .enable(JsonParser.Feature.IGNORE_UNDEFINED)
             .enable(JsonParser.Feature.ALLOW_COMMENTS)
@@ -209,7 +209,9 @@ public class GeyserImpl implements GeyserApi, EventRegistrar {
         logger.info(GeyserLocale.getLocaleStringLog("geyser.core.load", NAME, VERSION));
         logger.info("");
         if (IS_DEV) {
-            logger.info(GeyserLocale.getLocaleStringLog("geyser.core.dev_build", "https://discord.gg/geysermc"));
+            // TODO cloud use language string
+            //logger.info(GeyserLocale.getLocaleStringLog("geyser.core.dev_build", "https://discord.gg/geysermc"));
+            logger.info("You are running a development build of Geyser! Please report any bugs you find on our Discord server: %s".formatted("https://discord.gg/geysermc"));
             logger.info("");
         }
         logger.info("******************************************");
@@ -241,9 +243,6 @@ public class GeyserImpl implements GeyserApi, EventRegistrar {
 
             CompletableFuture.runAsync(AssetUtils::downloadAndRunClientJarTasks);
         });
-
-        // Register our general permissions when possible
-        eventBus.subscribe(this, GeyserRegisterPermissionsEvent.class, Permissions::register);
 
         startInstance();
 
@@ -667,6 +666,7 @@ public class GeyserImpl implements GeyserApi, EventRegistrar {
         if (isEnabled) {
             this.disable();
         }
+        this.commandManager().getCommands().clear();
 
         // Disable extensions, fire the shutdown event
         this.eventBus.fire(new GeyserShutdownEvent(this.extensionManager, this.eventBus));
@@ -704,12 +704,9 @@ public class GeyserImpl implements GeyserApi, EventRegistrar {
         return this.extensionManager;
     }
 
-    /**
-     * @return the current CommandRegistry in use. The instance may change over the lifecycle of the Geyser runtime.
-     */
     @NonNull
-    public CommandRegistry commandRegistry() {
-        return this.bootstrap.getCommandRegistry();
+    public GeyserCommandManager commandManager() {
+        return this.bootstrap.getGeyserCommandManager();
     }
 
     @Override
