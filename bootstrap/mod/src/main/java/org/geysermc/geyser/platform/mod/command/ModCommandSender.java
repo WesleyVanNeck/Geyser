@@ -31,21 +31,19 @@ import net.minecraft.core.RegistryAccess;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.geysermc.geyser.GeyserImpl;
 import org.geysermc.geyser.command.GeyserCommandSource;
+import org.geysermc.geyser.platform.mod.GeyserModBootstrap;
 import org.geysermc.geyser.text.ChatColor;
 
 import java.util.Objects;
-import java.util.UUID;
 
-public class ModCommandSource implements GeyserCommandSource {
+public class ModCommandSender implements GeyserCommandSource {
 
     private final CommandSourceStack source;
 
-    public ModCommandSource(CommandSourceStack source) {
+    public ModCommandSender(CommandSourceStack source) {
         this.source = source;
-        // todo find locale?
     }
 
     @Override
@@ -78,23 +76,7 @@ public class ModCommandSource implements GeyserCommandSource {
     }
 
     @Override
-    public @Nullable UUID playerUuid() {
-        if (source.getEntity() instanceof ServerPlayer player) {
-            return player.getUUID();
-        }
-        return null;
-    }
-
-    @Override
     public boolean hasPermission(String permission) {
-        // Unlike other bootstraps; we delegate to cloud here too:
-        // On NeoForge; we'd have to keep track of all PermissionNodes - cloud already does that
-        // For Fabric, we won't need to include the Fabric Permissions API anymore - cloud already does that too :p
-        return GeyserImpl.getInstance().commandRegistry().hasPermission(this, permission);
-    }
-
-    @Override
-    public Object handle() {
-        return source;
+        return GeyserModBootstrap.getInstance().hasPermission(source, permission, source.getServer().getOperatorUserPermissionLevel());
     }
 }

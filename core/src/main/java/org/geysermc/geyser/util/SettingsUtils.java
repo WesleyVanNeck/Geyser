@@ -28,7 +28,6 @@ package org.geysermc.geyser.util;
 import org.geysermc.cumulus.component.DropdownComponent;
 import org.geysermc.cumulus.form.CustomForm;
 import org.geysermc.geyser.GeyserImpl;
-import org.geysermc.geyser.Permissions;
 import org.geysermc.geyser.level.GameRule;
 import org.geysermc.geyser.level.WorldManager;
 import org.geysermc.geyser.session.GeyserSession;
@@ -80,7 +79,7 @@ public class SettingsUtils {
             }
         }
 
-        boolean showGamerules = session.getOpPermissionLevel() >= 2 || session.hasPermission(Permissions.SETTINGS_GAMERULES);
+        boolean showGamerules = session.getOpPermissionLevel() >= 2 || session.hasPermission("geyser.settings.gamerules");
         if (showGamerules) {
             builder.label("geyser.settings.title.game_rules")
                     .translator(MinecraftLocale::getLocaleString); // we need translate gamerules next

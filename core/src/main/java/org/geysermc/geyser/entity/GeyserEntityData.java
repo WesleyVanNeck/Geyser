@@ -96,9 +96,4 @@ public class GeyserEntityData implements EntityData {
     public boolean isMovementLocked() {
         return !movementLockOwners.isEmpty();
     }
-
-    @Override
-    public void switchHands() {
-        session.requestOffhandSwap();
-    }
 }

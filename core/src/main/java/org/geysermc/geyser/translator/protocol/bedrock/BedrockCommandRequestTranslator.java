@@ -28,7 +28,6 @@ package org.geysermc.geyser.translator.protocol.bedrock;
 import org.cloudburstmc.protocol.bedrock.packet.CommandRequestPacket;
 import org.geysermc.geyser.GeyserImpl;
 import org.geysermc.geyser.api.util.PlatformType;
-import org.geysermc.geyser.command.CommandRegistry;
 import org.geysermc.geyser.session.GeyserSession;
 import org.geysermc.geyser.translator.protocol.PacketTranslator;
 import org.geysermc.geyser.translator.protocol.Translator;
@@ -44,26 +43,13 @@ public class BedrockCommandRequestTranslator extends PacketTranslator<CommandReq
     }
 
     static void handleCommand(GeyserSession session, String command) {
-        if (session.getGeyser().getPlatformType() == PlatformType.STANDALONE ||
-            session.getGeyser().getPlatformType() == PlatformType.VIAPROXY) {
-            // try to handle the command within the standalone/viaproxy command manager
-
-            String[] args = command.split(" ");
-            if (args.length > 0) {
-                String root = args[0];
-
-                CommandRegistry registry = GeyserImpl.getInstance().commandRegistry();
-                if (registry.rootCommands().contains(root)) {
-                    registry.runCommand(session, command);
-                    return; // don't pass the command to the java server
-                }
+        if (!(session.getGeyser().getPlatformType() == PlatformType.STANDALONE
+                && GeyserImpl.getInstance().commandManager().runCommand(session, command))) {
+            if (MessageTranslator.isTooLong(command, session)) {
+                return;
             }
-        }
 
-        if (MessageTranslator.isTooLong(command, session)) {
-            return;
+            session.sendCommand(command);
         }
-
-        session.sendCommand(command);
     }
 }

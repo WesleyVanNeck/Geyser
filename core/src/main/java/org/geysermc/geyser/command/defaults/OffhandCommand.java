@@ -25,23 +25,33 @@
 
 package org.geysermc.geyser.command.defaults;
 
-import org.geysermc.geyser.api.util.TriState;
+import org.geysermc.geyser.GeyserImpl;
 import org.geysermc.geyser.command.GeyserCommand;
 import org.geysermc.geyser.command.GeyserCommandSource;
 import org.geysermc.geyser.session.GeyserSession;
-import org.incendo.cloud.context.CommandContext;
-
-import java.util.Objects;
 
 public class OffhandCommand extends GeyserCommand {
 
-    public OffhandCommand(String name, String description, String permission) {
-        super(name, description, permission, TriState.TRUE, true, true);
+    public OffhandCommand(GeyserImpl geyser, String name, String description, String permission) {
+        super(name, description, permission);
     }
 
     @Override
-    public void execute(CommandContext<GeyserCommandSource> context) {
-        GeyserSession session = Objects.requireNonNull(context.sender().connection());
+    public void execute(GeyserSession session, GeyserCommandSource sender, String[] args) {
+        if (session == null) {
+            return;
+        }
+
         session.requestOffhandSwap();
+    }
+
+    @Override
+    public boolean isExecutableOnConsole() {
+        return false;
+    }
+
+    @Override
+    public boolean isBedrockOnly() {
+        return true;
     }
 }
