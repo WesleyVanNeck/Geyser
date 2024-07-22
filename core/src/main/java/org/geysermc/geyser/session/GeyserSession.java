@@ -1457,12 +1457,7 @@ public class GeyserSession implements GeyserConnection, GeyserCommandSource {
      * We don't want to apply this for every render distance, if at all possible, because
      */
     private void recalculateBedrockRenderDistance() {
-        int renderDistance;
-        if (this.clientRenderDistance < this.serverRenderDistance) {
-            renderDistance = ChunkUtils.squareToCircle(this.serverRenderDistance);
-        } else {
-            renderDistance = this.serverRenderDistance;
-        }
+        int renderDistance = ChunkUtils.squareToCircle(this.serverRenderDistance);
         ChunkRadiusUpdatedPacket chunkRadiusUpdatedPacket = new ChunkRadiusUpdatedPacket();
         chunkRadiusUpdatedPacket.setRadius(renderDistance);
         upstream.sendPacket(chunkRadiusUpdatedPacket);
