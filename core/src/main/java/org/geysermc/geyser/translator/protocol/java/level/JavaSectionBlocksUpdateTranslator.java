@@ -36,59 +36,6 @@ public class JavaSectionBlocksUpdateTranslator extends PacketTranslator<Clientbo
 
     @Override
     public void translate(GeyserSession session, ClientboundSectionBlocksUpdatePacket packet) {
-        // Send normal block updates if not many changes
-        if (packet.getEntries().length < 32) {
-            for (BlockChangeEntry entry : packet.getEntries()) {
-                session.getWorldCache().updateServerCorrectBlockState(entry.getPosition(), entry.getBlock());
-            }
-            return;
-        }
-
-        UpdateSubChunkBlocksPacket subChunkBlocksPacket = new UpdateSubChunkBlocksPacket();
-        subChunkBlocksPacket.setChunkX(packet.getChunkX());
-        subChunkBlocksPacket.setChunkY(packet.getChunkY());
-        subChunkBlocksPacket.setChunkZ(packet.getChunkZ());
-
-        // If the entire section is updated, this might be a legacy non-full chunk update
-        // which can contain thousands of unchanged blocks
-        if (packet.getEntries().length == 4096 && !session.getGeyser().getWorldManager().hasOwnChunkCache()) {
-            // hack - bedrock might ignore the block updates if the chunk was still loading.
-            // sending an UpdateBlockPacket seems to force it
-            BlockChangeEntry firstEntry = packet.getEntries()[0];
-            UpdateBlockPacket blockPacket = new UpdateBlockPacket();
-            blockPacket.setBlockPosition(firstEntry.getPosition());
-            blockPacket.setDefinition(session.getBlockMappings().getBedrockBlock(firstEntry.getBlock()));
-            blockPacket.setDataLayer(0);
-            session.sendUpstreamPacket(blockPacket);
-
-            // Filter out unchanged blocks
-            Vector3i offset = Vector3i.from(packet.getChunkX() << 4, packet.getChunkY() << 4, packet.getChunkZ() << 4);
-            BlockPositionIterator blockIter = BlockPositionIterator.fromMinMax(
-                    offset.getX(), offset.getY(), offset.getZ(),
-                    offset.getX() + 15, offset.getY() + 15, offset.getZ() + 15
-            );
-
-            int[] sectionBlocks = session.getGeyser().getWorldManager().getBlocksAt(session, blockIter);
-            BitSet waterlogged = BlockRegistries.WATERLOGGED.get();
-            for (BlockChangeEntry entry : packet.getEntries()) {
-                Vector3i pos = entry.getPosition().sub(offset);
-                int index = pos.getZ() + pos.getX() * 16 + pos.getY() * 256;
-                int oldBlockState = sectionBlocks[index];
-                if (oldBlockState != entry.getBlock()) {
-                    // Avoid sending unnecessary waterlogged updates
-                    boolean updateWaterlogged = waterlogged.get(oldBlockState) != waterlogged.get(entry.getBlock());
-                    applyEntry(session, entry, subChunkBlocksPacket, updateWaterlogged);
-                }
-            }
-        } else {
-            for (BlockChangeEntry entry : packet.getEntries()) {
-                applyEntry(session, entry, subChunkBlocksPacket, true);
-            }
-        }
-
-        session.sendUpstreamPacket(subChunkBlocksPacket);
-
-        // Post block update
         for (BlockChangeEntry entry : packet.getEntries()) {
             session.getWorldCache().updateServerCorrectBlockState(entry.getPosition(), entry.getBlock());
         }
