@@ -37,7 +37,6 @@ import org.cloudburstmc.protocol.bedrock.netty.codec.compression.CompressionStra
 import org.cloudburstmc.protocol.bedrock.netty.codec.compression.SimpleCompressionStrategy;
 import org.cloudburstmc.protocol.bedrock.netty.codec.compression.ZlibCompression;
 import org.cloudburstmc.protocol.bedrock.packet.BedrockPacket;
-import org.cloudburstmc.protocol.bedrock.packet.LecternUpdatePacket;
 import org.cloudburstmc.protocol.bedrock.packet.LoginPacket;
 import org.cloudburstmc.protocol.bedrock.packet.ModalFormResponsePacket;
 import org.cloudburstmc.protocol.bedrock.packet.MovePlayerPacket;
@@ -74,12 +73,15 @@ import org.geysermc.geyser.util.VersionCheckUtils;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.OptionalInt;
 
 public class UpstreamPacketHandler extends LoggingPacketHandler {
 
     private boolean networkSettingsRequested = false;
+    private final Deque<String> packsToSent = new ArrayDeque<>();
     private final CompressionStrategy compressionStrategy;
 
     private SessionLoadResourcePacksEventImpl resourcePackLoadEvent;
@@ -99,7 +101,6 @@ public class UpstreamPacketHandler extends LoggingPacketHandler {
 
     @Override
     PacketSignal defaultHandler(BedrockPacket packet) {
-        this.cooldownHandler.handle(packet);
         return translateAndDefault(packet);
     }
 
@@ -149,7 +150,6 @@ public class UpstreamPacketHandler extends LoggingPacketHandler {
 
     @Override
     public PacketSignal handle(RequestNetworkSettingsPacket packet) {
-        this.cooldownHandler.handle(packet);
         if (!setCorrectCodec(packet.getProtocolVersion())) {
             return PacketSignal.HANDLED;
         }
@@ -169,7 +169,6 @@ public class UpstreamPacketHandler extends LoggingPacketHandler {
 
     @Override
     public PacketSignal handle(LoginPacket loginPacket) {
-        this.cooldownHandler.handle(loginPacket);
         if (geyser.isShuttingDown() || geyser.isReloading()) {
             // Don't allow new players in if we're no longer operating
             session.disconnect(GeyserLocale.getLocaleStringLog("geyser.core.shutdown.kick.message"));
@@ -221,11 +220,6 @@ public class UpstreamPacketHandler extends LoggingPacketHandler {
 
     @Override
     public PacketSignal handle(ResourcePackClientResponsePacket packet) {
-        this.cooldownHandler.handle(packet);
-        if (packet.getPackIds().size() > this.resourcePackLoadEvent.getPacks().size()) {
-            session.disconnect("Packet " + packet.getClass().getSimpleName() + " PackIds max count");
-            return PacketSignal.HANDLED;
-        }
         switch (packet.getStatus()) {
             case COMPLETED:
                 if (geyser.getConfig().getRemote().authType() != AuthType.ONLINE) {
@@ -238,24 +232,8 @@ public class UpstreamPacketHandler extends LoggingPacketHandler {
                 break;
 
             case SEND_PACKS:
-                int chunkIndex = 1;
-                for (String id : packet.getPackIds()) {
-
-                    String[] packID = id.split("_", 2);
-                    if (packID.length != 2) {
-                        session.disconnect("Invalid packID id: " + id);
-                        break;
-                    }
-                    ResourcePack pack = this.resourcePackLoadEvent.getPacks().get(packID[0]);
-                    if (pack == null) {
-                        session.disconnect("Invalid request unknown pack " + packID[0] + ", available packs: " + this.resourcePackLoadEvent.getPacks().keySet());
-                        break;
-                    }
-
-                    sendPackDataInfo(id);
-                    chunkIndex += (int) ((this.resourcePackLoadEvent.getPacks().get(packID[0]).codec().size() + GeyserResourcePack.CHUNK_SIZE) / GeyserResourcePack.CHUNK_SIZE);
-                }
-                cooldownHandler.setPacketCooldown(ResourcePackChunkRequestPacket.class, -1, chunkIndex);
+                packsToSent.addAll(packet.getPackIds());
+                sendPackDataInfo(packsToSent.pop());
                 break;
 
             case HAVE_ALL_PACKS:
@@ -290,7 +268,6 @@ public class UpstreamPacketHandler extends LoggingPacketHandler {
 
     @Override
     public PacketSignal handle(ModalFormResponsePacket packet) {
-        this.cooldownHandler.handle(packet);
         session.executeInEventLoop(() -> session.getFormCache().handleResponse(packet));
         return PacketSignal.HANDLED;
     }
@@ -331,13 +308,8 @@ public class UpstreamPacketHandler extends LoggingPacketHandler {
 
     @Override
     public PacketSignal handle(ResourcePackChunkRequestPacket packet) {
-        this.cooldownHandler.handle(packet);
         ResourcePackChunkDataPacket data = new ResourcePackChunkDataPacket();
         ResourcePack pack = this.resourcePackLoadEvent.getPacks().get(packet.getPackId().toString());
-        if (pack == null) {
-            session.disconnect("Invalid request for chunk " + packet.getChunkIndex() + " of unknown pack " + packet.getPackId() + ", available packs: " + this.resourcePackLoadEvent.getPacks().keySet());
-            return PacketSignal.HANDLED;
-        }
         PackCodec codec = pack.codec();
 
         data.setChunkIndex(packet.getChunkIndex());
@@ -346,10 +318,6 @@ public class UpstreamPacketHandler extends LoggingPacketHandler {
         data.setPackId(packet.getPackId());
 
         int offset = packet.getChunkIndex() * GeyserResourcePack.CHUNK_SIZE;
-        if (offset < 0 || offset >= codec.size()) {
-            session.disconnect("Invalid out-of-bounds request for chunk " + packet.getChunkIndex() + " of " + packet.getPackId() + " offset " + offset + ", file size " + codec.size());
-            return PacketSignal.HANDLED;
-        }
         long remainingSize = codec.size() - offset;
         byte[] packData = new byte[(int) MathUtils.constrain(remainingSize, 0, GeyserResourcePack.CHUNK_SIZE)];
 
@@ -364,12 +332,17 @@ public class UpstreamPacketHandler extends LoggingPacketHandler {
 
         session.sendUpstreamPacket(data);
 
+        // Check if it is the last chunk and send next pack in queue when available.
+        if (remainingSize <= GeyserResourcePack.CHUNK_SIZE && !packsToSent.isEmpty()) {
+            sendPackDataInfo(packsToSent.pop());
+        }
+
         return PacketSignal.HANDLED;
     }
 
     private void sendPackDataInfo(String id) {
         ResourcePackDataInfoPacket data = new ResourcePackDataInfoPacket();
-        String[] packID = id.split("_", 2);
+        String[] packID = id.split("_");
         ResourcePack pack = this.resourcePackLoadEvent.getPacks().get(packID[0]);
         PackCodec codec = pack.codec();
         ResourcePackManifest.Header header = pack.manifest().header();

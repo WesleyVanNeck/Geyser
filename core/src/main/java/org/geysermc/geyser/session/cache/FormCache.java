@@ -25,21 +25,18 @@
 
 package org.geysermc.geyser.session.cache;
 
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
-import lombok.RequiredArgsConstructor;
-import org.cloudburstmc.protocol.bedrock.data.ModalFormCancelReason;
 import org.cloudburstmc.protocol.bedrock.packet.ModalFormRequestPacket;
 import org.cloudburstmc.protocol.bedrock.packet.ModalFormResponsePacket;
 import org.cloudburstmc.protocol.bedrock.packet.NetworkStackLatencyPacket;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import lombok.RequiredArgsConstructor;
 import org.geysermc.cumulus.form.Form;
 import org.geysermc.cumulus.form.SimpleForm;
 import org.geysermc.cumulus.form.impl.FormDefinitions;
 import org.geysermc.geyser.GeyserImpl;
 import org.geysermc.geyser.session.GeyserSession;
 
-import java.util.LinkedList;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -55,22 +52,11 @@ public class FormCache {
     private final FormDefinitions formDefinitions = FormDefinitions.instance();
     private final AtomicInteger formIdCounter = new AtomicInteger(0);
     private final Int2ObjectMap<Form> forms = new Int2ObjectOpenHashMap<>();
-    LinkedList<Integer> formsOrderList = new LinkedList<>();
     private final GeyserSession session;
 
     public int addForm(Form form) {
         int formId = formIdCounter.getAndIncrement();
         forms.put(formId, form);
-        formsOrderList.add(formId);
-
-        if (formsOrderList.size() > 50) {
-            int removeFormId = formsOrderList.getFirst();
-            ModalFormResponsePacket packet = new ModalFormResponsePacket();
-            packet.setFormId(removeFormId);
-            packet.setCancelReason(Optional.of(ModalFormCancelReason.USER_CLOSED));
-            packet.setFormData(null);
-            this.handleResponse(packet);
-        }
         return formId;
     }
 
@@ -110,7 +96,6 @@ public class FormCache {
 
     public void handleResponse(ModalFormResponsePacket response) {
         Form form = forms.remove(response.getFormId());
-        formsOrderList.remove((Integer) response.getFormId());
         if (form == null) {
             return;
         }

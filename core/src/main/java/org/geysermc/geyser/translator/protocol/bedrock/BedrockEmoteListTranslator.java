@@ -25,31 +25,21 @@
 
 package org.geysermc.geyser.translator.protocol.bedrock;
 
-import org.cloudburstmc.protocol.bedrock.packet.CommandRequestPacket;
-import org.geysermc.geyser.GeyserImpl;
-import org.geysermc.geyser.api.util.PlatformType;
+import org.cloudburstmc.protocol.bedrock.packet.EmoteListPacket;
+import org.geysermc.geyser.configuration.EmoteOffhandWorkaroundOption;
 import org.geysermc.geyser.session.GeyserSession;
 import org.geysermc.geyser.translator.protocol.PacketTranslator;
 import org.geysermc.geyser.translator.protocol.Translator;
-import org.geysermc.geyser.translator.text.MessageTranslator;
 
-@Translator(packet = CommandRequestPacket.class)
-public class BedrockCommandRequestTranslator extends PacketTranslator<CommandRequestPacket> {
+@Translator(packet = EmoteListPacket.class)
+public class BedrockEmoteListTranslator extends PacketTranslator<EmoteListPacket> {
 
     @Override
-    public void translate(GeyserSession session, CommandRequestPacket packet) {
-        String command = MessageTranslator.convertToPlainText(packet.getCommand());
-        handleCommand(session, MessageTranslator.normalizeSpace(command).substring(1));
-    }
-
-    static void handleCommand(GeyserSession session, String command) {
-        if (!(session.getGeyser().getPlatformType() == PlatformType.STANDALONE
-                && GeyserImpl.getInstance().commandManager().runCommand(session, command))) {
-            if (MessageTranslator.isTooLong(command, session)) {
-                return;
-            }
-
-            session.sendCommand(command);
+    public void translate(GeyserSession session, EmoteListPacket packet) {
+        if (session.getGeyser().getConfig().getEmoteOffhandWorkaround() == EmoteOffhandWorkaroundOption.NO_EMOTES) {
+            return;
         }
+
+        session.refreshEmotes(packet.getPieceIds());
     }
 }
