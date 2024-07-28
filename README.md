@@ -6,6 +6,7 @@
 
 Geyser is a bridge between Minecraft: Bedrock Edition and Minecraft: Java Edition, closing the gap from those wanting to play true cross-platform.
 
+
 Geyser is an open collaboration project by [CubeCraft Games](https://cubecraft.net).
 
 ## What is Geyser?
