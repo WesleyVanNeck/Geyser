@@ -54,6 +54,8 @@ import org.cloudburstmc.math.vector.Vector3d;
 import org.cloudburstmc.math.vector.Vector3f;
 import org.cloudburstmc.math.vector.Vector3i;
 import org.cloudburstmc.nbt.NbtMap;
+import org.cloudburstmc.netty.channel.raknet.RakChildChannel;
+import org.cloudburstmc.netty.handler.codec.raknet.common.RakSessionCodec;
 import org.cloudburstmc.protocol.bedrock.BedrockDisconnectReasons;
 import org.cloudburstmc.protocol.bedrock.BedrockServerSession;
 import org.cloudburstmc.protocol.bedrock.data.Ability;
@@ -125,6 +127,7 @@ import org.geysermc.geyser.entity.type.Entity;
 import org.geysermc.geyser.entity.type.ItemFrameEntity;
 import org.geysermc.geyser.entity.type.Tickable;
 import org.geysermc.geyser.entity.type.player.SessionPlayerEntity;
+import org.geysermc.geyser.entity.vehicle.ClientVehicle;
 import org.geysermc.geyser.erosion.AbstractGeyserboundPacketHandler;
 import org.geysermc.geyser.erosion.GeyserboundHandshakePacketHandler;
 import org.geysermc.geyser.impl.camera.CameraDefinitions;
@@ -336,7 +339,6 @@ public class GeyserSession implements GeyserConnection, GeyserCommandSource {
 
     @Setter
     private Vector2i lastChunkPosition = null;
-    @Setter
     private int clientRenderDistance = -1;
     private int serverRenderDistance = -1;
 
@@ -591,6 +593,19 @@ public class GeyserSession implements GeyserConnection, GeyserCommandSource {
      * The thread that will run every 50 milliseconds - one Minecraft tick.
      */
     private ScheduledFuture<?> tickThread = null;
+
+    /**
+     * The number of ticks that have elapsed since the start of this session
+     */
+    private int ticks;
+
+    /**
+     * The world time in ticks according to the server
+     * <p>
+     * Note: The TickingStatePacket is currently ignored.
+     */
+    @Setter
+    private long worldTicks;
 
     /**
      * Used to return the player to their original rotation after using an item in BedrockInventoryTransactionTranslator
@@ -1251,6 +1266,10 @@ public class GeyserSession implements GeyserConnection, GeyserCommandSource {
                 isInWorldBorderWarningArea = false;
             }
 
+            Entity vehicle = playerEntity.getVehicle();
+            if (vehicle instanceof ClientVehicle clientVehicle && vehicle.isValid()) {
+                clientVehicle.getVehicleComponent().tickVehicle();
+            }
 
             for (Tickable entity : entityCache.getTickableEntities()) {
                 entity.tick();
@@ -1286,6 +1305,9 @@ public class GeyserSession implements GeyserConnection, GeyserCommandSource {
         } catch (Throwable throwable) {
             throwable.printStackTrace();
         }
+
+        ticks++;
+        worldTicks++;
     }
 
     public void setAuthenticationData(AuthData authData) {
@@ -1457,8 +1479,25 @@ public class GeyserSession implements GeyserConnection, GeyserCommandSource {
     }
 
     @Override
+    public UUID playerUuid() {
+        return javaUuid(); // CommandSource allows nullable
+    }
+
+    @Override
+    public GeyserSession connection() {
+        return this;
+    }
+
+    @Override
     public String locale() {
         return clientData.getLanguageCode();
+    }
+
+    @Override
+    public boolean hasPermission(String permission) {
+        // for Geyser-Standalone, standalone's permission system will handle it.
+        // for server platforms, the session will be mapped to a server command sender, and the server's api will be used.
+        return geyser.commandRegistry().hasPermission(this, permission);
     }
 
     /**
@@ -1475,11 +1514,36 @@ public class GeyserSession implements GeyserConnection, GeyserCommandSource {
         sendDownstreamGamePacket(new ServerboundChatCommandSignedPacket(command, Instant.now().toEpochMilli(), 0L, Collections.emptyList(), 0, new BitSet()));
     }
 
+    public void setClientRenderDistance(int clientRenderDistance) {
+        boolean oldSquareToCircle = this.clientRenderDistance < this.serverRenderDistance;
+        this.clientRenderDistance = clientRenderDistance;
+        boolean newSquareToCircle = this.clientRenderDistance < this.serverRenderDistance;
+
+        if (this.serverRenderDistance != -1 && oldSquareToCircle != newSquareToCircle) {
+            recalculateBedrockRenderDistance();
+        }
+    }
+
     public void setServerRenderDistance(int renderDistance) {
         // Ensure render distance is not above 96 as sending a larger value at any point crashes mobile clients and 96 is the max of any bedrock platform
         renderDistance = Math.min(renderDistance, 96);
         this.serverRenderDistance = renderDistance;
 
+        recalculateBedrockRenderDistance();
+    }
+
+    /**
+     * Ensures that the ChunkRadiusUpdatedPacket uses the correct render distance for whatever the client distance is set as.
+     * If the server render distance is larger than the client's, then account for this and add some extra padding.
+     * We don't want to apply this for every render distance, if at all possible, because
+     */
+    private void recalculateBedrockRenderDistance() {
+        int renderDistance;
+        if (this.clientRenderDistance < this.serverRenderDistance) {
+            renderDistance = ChunkUtils.squareToCircle(this.serverRenderDistance);
+        } else {
+            renderDistance = this.serverRenderDistance;
+        }
         ChunkRadiusUpdatedPacket chunkRadiusUpdatedPacket = new ChunkRadiusUpdatedPacket();
         chunkRadiusUpdatedPacket.setRadius(renderDistance);
         upstream.sendPacket(chunkRadiusUpdatedPacket);
@@ -1771,17 +1835,6 @@ public class GeyserSession implements GeyserConnection, GeyserCommandSource {
         GameRulesChangedPacket gameRulesChangedPacket = new GameRulesChangedPacket();
         gameRulesChangedPacket.getGameRules().add(new GameRuleData<>(gameRule, value));
         upstream.sendPacket(gameRulesChangedPacket);
-    }
-
-    /**
-     * Checks if the given session's player has a permission
-     *
-     * @param permission The permission node to check
-     * @return true if the player has the requested permission, false if not
-     */
-    @Override
-    public boolean hasPermission(String permission) {
-        return geyser.getWorldManager().hasPermission(this, permission);
     }
 
     private static final Ability[] USED_ABILITIES = Ability.values();
@@ -2092,6 +2145,12 @@ public class GeyserSession implements GeyserConnection, GeyserCommandSource {
     @Override
     public @NonNull Set<String> fogEffects() {
         return this.cameraData.fogEffects();
+    }
+
+    @Override
+    public int ping() {
+        RakSessionCodec rakSessionCodec = ((RakChildChannel) getUpstream().getSession().getPeer().getChannel()).rakPipeline().get(RakSessionCodec.class);
+        return (int) Math.floor(rakSessionCodec.getPing());
     }
 
     public void addCommandEnum(String name, String enums) {

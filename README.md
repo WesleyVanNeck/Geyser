@@ -23,8 +23,7 @@ Take a look [here](https://wiki.geysermc.org/geyser/setup/) for how to set up Ge
 
 ## Links:
 - Website: https://geysermc.org
-- Docs: https://wiki.geysermc.org/geyser/
-- Download: https://geysermc.org/download 
+
 - Discord: https://discord.gg/geysermc
 - Donate: https://opencollective.com/geysermc
 - Test Server: `test.geysermc.org` port `25565` for Java and `19132` for Bedrock
