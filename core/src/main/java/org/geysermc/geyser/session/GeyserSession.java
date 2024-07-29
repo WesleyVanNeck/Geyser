@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019-2022 GeyserMC. http://geysermc.org
+ * Copyright (c) 2019-2024 GeyserMC. http://geysermc.org
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -617,7 +617,8 @@ public class GeyserSession implements GeyserConnection, GeyserCommandSource {
     /**
      * Stores cookies sent by the Java server.
      */
-    @Setter @Getter
+    @Setter
+    @Getter
     private Map<String, byte[]> cookies = new Object2ObjectOpenHashMap<>();
 
     private final GeyserCameraData cameraData;
@@ -625,6 +626,14 @@ public class GeyserSession implements GeyserConnection, GeyserCommandSource {
     private final GeyserEntityData entityData;
 
     private MinecraftProtocol protocol;
+
+    private boolean tickingFrozen = false;
+    /**
+     * The amount of ticks requested by the server that the game should proceed with, even if the game tick loop is frozen.
+     */
+    @Setter
+    private int stepTicks = 0;
+    private boolean gameShouldUpdate = true;
 
     public GeyserSession(GeyserImpl geyser, BedrockServerSession bedrockServerSession, EventLoop eventLoop) {
         this.geyser = geyser;
@@ -1210,8 +1219,14 @@ public class GeyserSession implements GeyserConnection, GeyserCommandSource {
         }, duration, timeUnit);
     }
 
+    public void updateTickingState(float tickRate, boolean frozen) {
+        tickThread.cancel(true);
+        this.tickingFrozen = frozen;
+        tickThread = eventLoop.scheduleAtFixedRate(this::tick, Math.round(1000 / tickRate), Math.round(1000 / tickRate), TimeUnit.MILLISECONDS);
+    }
+
     /**
-     * Called every 50 milliseconds - one Minecraft tick.
+     * Called every Minecraft tick - 1000/tickRate milliseconds.
      */
     protected void tick() {
         try {
@@ -1249,9 +1264,15 @@ public class GeyserSession implements GeyserConnection, GeyserCommandSource {
                 isInWorldBorderWarningArea = false;
             }
 
-
+            gameShouldUpdate = !tickingFrozen || stepTicks > 0;
+            if (stepTicks > 0) {
+                --stepTicks;
+            }
             for (Tickable entity : entityCache.getTickableEntities()) {
-                entity.tick();
+                entity.drawTick();
+                if (gameShouldUpdate) {
+                    entity.tick();
+                }
             }
 
             if (armAnimationTicks >= 0) {
@@ -1975,7 +1996,7 @@ public class GeyserSession implements GeyserConnection, GeyserCommandSource {
 
     @Override
     public UUID javaUuid() {
-        return playerEntity != null ? playerEntity.getUuid() : null ;
+        return playerEntity != null ? playerEntity.getUuid() : null;
     }
 
     @Override

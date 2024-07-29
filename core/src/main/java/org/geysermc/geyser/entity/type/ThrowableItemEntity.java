@@ -25,12 +25,13 @@
 
 package org.geysermc.geyser.entity.type;
 
-import org.geysermc.mcprotocollib.protocol.data.game.entity.metadata.EntityMetadata;
-import org.geysermc.mcprotocollib.protocol.data.game.item.ItemStack;
 import org.cloudburstmc.math.vector.Vector3f;
+import org.cloudburstmc.protocol.bedrock.data.entity.EntityDataTypes;
 import org.cloudburstmc.protocol.bedrock.data.entity.EntityFlag;
 import org.geysermc.geyser.entity.EntityDefinition;
 import org.geysermc.geyser.session.GeyserSession;
+import org.geysermc.mcprotocollib.protocol.data.game.entity.metadata.EntityMetadata;
+import org.geysermc.mcprotocollib.protocol.data.game.item.ItemStack;
 
 import java.util.UUID;
 
@@ -38,10 +39,6 @@ import java.util.UUID;
  * Used as a class for any projectile entity that looks like an item
  */
 public class ThrowableItemEntity extends ThrowableEntity {
-    /**
-     * Number of ticks since the entity was spawned by the Java server
-     */
-    private int age;
     private boolean invisible;
 
     public ThrowableItemEntity(GeyserSession session, int entityId, long geyserId, UUID uuid, EntityDefinition<?> definition, Vector3f position, Vector3f motion, float yaw, float pitch, float headYaw) {
@@ -50,27 +47,28 @@ public class ThrowableItemEntity extends ThrowableEntity {
         invisible = false;
     }
 
+    @Override
+    protected void initializeMetadata() {
+        super.initializeMetadata();
+        // Correct sizing
+        dirtyMetadata.put(EntityDataTypes.SCALE, 0.5f);
+    }
+
     private void checkVisibility() {
+        Vector3f playerPos = session.getPlayerEntity().getPosition();
+        // Prevent projectiles from blocking the player's screen
+        setInvisible(position.distanceSquared(playerPos) < 9);
+
         if (invisible != getFlag(EntityFlag.INVISIBLE)) {
-            if (!invisible) {
-                Vector3f playerPos = session.getPlayerEntity().getPosition();
-                // Prevent projectiles from blocking the player's screen
-                if (age >= 4 || position.distanceSquared(playerPos) > 16) {
-                    setFlag(EntityFlag.INVISIBLE, false);
-                    updateBedrockMetadata();
-                }
-            } else {
-                setFlag(EntityFlag.INVISIBLE, true);
-                updateBedrockMetadata();
-            }
+            setFlag(EntityFlag.INVISIBLE, invisible);
+            updateBedrockMetadata();
         }
-        age++;
     }
 
     @Override
-    public void tick() {
+    public void drawTick() {
         checkVisibility();
-        super.tick();
+        super.drawTick();
     }
 
     @Override
